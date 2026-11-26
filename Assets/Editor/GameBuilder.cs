@@ -812,7 +812,7 @@ namespace ZombieFPS.Editor
 
             var directorGo = new GameObject("AI Director");
             var runner = directorGo.AddComponent<DirectorRunner>();
-            directorGo.AddComponent<EmptyDirector>();
+            directorGo.AddComponent<MyDirector>();
 
             var overlay = game.AddComponent<DebugOverlay>();
             overlay.runner = runner;
