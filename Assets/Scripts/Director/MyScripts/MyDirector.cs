@@ -10,16 +10,23 @@ namespace ZombieFPS
         [SerializeField] private Image _healthBar;
         [SerializeField] private Image _ammoBar;
         [SerializeField] private Image _enemyNumber;
+        [SerializeField] private Image _waveTimeBar;
         
         
         public List<UtilityAction> _actions;
         
         public Dictionary<int, EnemyType> RandomEnemy = new();
+        
+        public Dictionary<int, PickupType> RandomWeapon = new();
 
-        [SerializeField] private float _spawnTime;
+        [SerializeField] private float _enemySpawnTime;
+        
+        [SerializeField] private float _pickupSpawnTime;
 
         [SerializeField] private AnimationCurve _enemySpeedCurve;
 
+        [SerializeField] private AnimationCurve _enemyNumberInHorde;
+        
         private bool FirstBoss;
 
         public Dictionary<string, float> Context = new();
@@ -27,29 +34,27 @@ namespace ZombieFPS
         public bool Test;
 
         private float _waveTimer;
-        private float _waveTime;
+        [SerializeField] private float _waveTime;
         [SerializeField] private AnimationCurve _waveMobsCurve;
         
         private bool _adrenaline;
         private float _adrenalineCooldown = 20;
+        [SerializeField] private float _adrenalineTimer;
+
+        private bool _firstWeapon;
+        private bool _secondWeapon;
         
         public void OnGameStart(DirectorContext context, DirectorActions actions)
         {
-            //context.Player.HealthRatio
-            //context.MaxAliveEnemies = 5;
-            // foreach (var SpawnPoint in context.EnemySpawnPoints)
-            // {
-            //     //actions.SpawnEnemies(EnemyType.Common, SpawnPoint.Position);
-            //     
-            // }
-            // //actions.StartFog(5);
-            //
-            // RandomEnemy.Add(1, EnemyType.Common);
-            // RandomEnemy.Add(2, EnemyType.Runner);
-            // RandomEnemy.Add(3, EnemyType.Bloater);
-            //
+            _waveTime = Random.Range(60, 240);
+            _waveTime = 10;
             
-            _waveTimer = Random.Range(60, 240);
+            RandomWeapon.Add(1, PickupType.Shotgun);
+            RandomWeapon.Add(2, PickupType.Rifle);
+            
+            RandomEnemy.Add(1, EnemyType.Common);
+            RandomEnemy.Add(2, EnemyType.Runner);
+            RandomEnemy.Add(3, EnemyType.Bloater);
             
             Context.Add("EnemySpeed", 0);
             Context.Add("EnemyDamage", 0);
@@ -61,8 +66,10 @@ namespace ZombieFPS
             Context.Add("Weapons", 0);
             Context.Add("Ammo", 0);
             
-            Context.Add("Combo", 0);
+            Context.Add("EnemyKilled", 0);
+            Context.Add("TimeForEachWave", 0);
 
+            Context.Add("DamageTaken", 0);
         }
 
         public void Tick(DirectorContext context, DirectorActions actions, float deltaTime)
@@ -70,137 +77,110 @@ namespace ZombieFPS
             Context["EnemySpeed"] = context.EnemySpeedMultiplier;
             Context["EnemyDamage"] = context.EnemyDamageMultiplier;
             Context["EnemyNumber"] = context.Enemies.Count / 10;
-            Context["MaxEnemy"] = context.MaxAliveEnemies;
+            
             Context["LevelProgress"] = context.Player.Progress;
+            Debug.Log(context.Player.Progress);
+            
+            Context["EnemyKilled"] = context.Stats.TotalKills/100;
 
             Context["Ammo"] = context.Player.AmmoRatio;
 
             Context["PlayerHealth"] = context.Player.HealthRatio;
 
-            Context["Weapons"] = context.Player.ownedWeapons.Length/3;
+            Context["Weapons"] = context.Player.ownedWeapons.Length /3;
 
-            Context["Combo"] = context.Stats.TimeSinceKill - context.Stats.TimeSinceDamageDealt ;
-            
-            //Debug.Log(context.Stats.TimeSinceKill - context.Stats.TimeSinceDamageDealt);
-            
-            Context["TimeSinceLastAdrenaline"] = _adrenalineCooldown/20;
-            
-            Context["Test"] = Test ? 1 : 0;
-            
+            Context["DamageTaken"] = context.Stats.TimeSinceDamageTaken;
+
+            Context["TimeForEachWave"] = _waveTimer / _waveTime;
             
             _healthBar.fillAmount = Context["PlayerHealth"];
             _ammoBar.fillAmount = Context["Ammo"];
             _enemyNumber.fillAmount = Context["EnemyNumber"];
-            // var enemyNumber = context.CountEnemies(EnemyType.Common);
-            //
-            //
-            //
-            // _spawnTime += deltaTime;
-            // if (_spawnTime > 0f)
-            // {
-            //     var EnemyGender = Random.Range(1,4);
-            //     SpawnPointInfo enemySpawnPoint = context.EnemySpawnPoints[Random.Range(0, context.EnemySpawnPoints.Count)];
-            //     if (!context.IsVisibleToPlayer(enemySpawnPoint.Position) && Vector3.Distance(enemySpawnPoint.Position, context.Player.Position) < 50 )
-            //         
-            //         actions.SpawnEnemy(RandomEnemy[EnemyGender], enemySpawnPoint);
-            //     
-            //     _spawnTime = 0;
-            // }
-            //
-            // for (int i = 0; i < context.Enemies.Count; i++)
-            // {
-            //     if (enemyNumber >= 20 && !context.IsVisibleToPlayer(context.Player.Position) &&
-            //         Vector3.Distance(context.Enemies[i].Position, context.Player.Position) >= 20)
-            //         actions.DespawnEnemy(context.Enemies[i]);
-            // }
-            //
-            // for (int i = 0; i < context.Enemies.Count; i++)
-            // {
-            //         actions.SetEnemySpeedMultiplier(_enemySpeedCurve.Evaluate(Vector3.Distance(context.Enemies[i].Position, context.Player.Position)/20));
-            //         Debug.Log(Vector3.Distance(context.Enemies[i].Position, context.Player.Position)/20);
-            // }
-            //
-            // Debug.Log(context.Player.Progress);
-            //
-            // if (context.Player.Progress > 0.25 && !FirstBoss)
-            // {
-            //     for (int i = 0; i < context.EnemySpawnPoints.Count; i++)
-            //     {
-            //             actions.StartFog(5);
-            //             actions.SpawnEnemy(EnemyType.Tank, context.EnemySpawnPoints[i]);
-            //     }
-            //     
-            //     FirstBoss = true;
-            // }
+            _waveTimeBar.fillAmount = Context["TimeForEachWave"];
             
-            _spawnTime += deltaTime;
+            //Debug.Log(Context["TimeForEachWave"]);
+
+            _enemySpawnTime += deltaTime;
+            _pickupSpawnTime += deltaTime;
             _waveTimer += deltaTime;
             
             if (_adrenaline  == true)
                 _adrenalineCooldown -= deltaTime;
+            
+            var enemySpawnPoint = context.EnemySpawnPoints[Random.Range(0, context.EnemySpawnPoints.Count)];
+            var pickupSpawnPoint = context.PickupSpawnPoints[Random.Range(0, context.PickupSpawnPoints.Count)];
 
             var bestAction = ChooseAction(context,  actions,  deltaTime);
             Debug.Log(bestAction.Name);
-            
-            if (bestAction.Name == "SpawnEnemy" && _spawnTime > 0.5f)
-            {
-                SpawnPointInfo enemySpawnPoint =
-                    context.EnemySpawnPoints[Random.Range(0, context.EnemySpawnPoints.Count)];
 
-                if (!context.IsVisibleToPlayer(enemySpawnPoint.Position) &&
-                    context.Player.CurrentZone == enemySpawnPoint.Zone)
-                    actions.SpawnEnemy(EnemyType.Common, enemySpawnPoint);
-                
-                _spawnTime = 0;
-            }
-
-            if (bestAction.Name == "SpawnAmmo" && _spawnTime > 0.5f)
+            switch (bestAction.Name)
             {
-                var pickupSpawnPoint = context.PickupSpawnPoints[Random.Range(0, context.PickupSpawnPoints.Count)];
+                case "SpawnEnemy" :
+                    if (!(!context.IsVisibleToPlayer(enemySpawnPoint.Position) && context.Player.CurrentZone == enemySpawnPoint.Zone && _enemySpawnTime > 0.5f)) 
+                        return;
+                    
+                    actions.SpawnEnemy(RandomEnemy[Random.Range(1,4)], enemySpawnPoint);
+                    _enemySpawnTime = 0;
+                    break;
                 
-                if (!context.IsVisibleToPlayer(context.Player.Position) && pickupSpawnPoint.Zone == context.Player.CurrentZone)
+                case "SpawnAmmo" :
+                    if (!(!context.IsVisibleToPlayer(context.Player.Position) && pickupSpawnPoint.Zone == context.Player.CurrentZone && _pickupSpawnTime > 2)) 
+                        return;
+                    
                     actions.SpawnPickup(PickupType.Ammo, pickupSpawnPoint);
+                    _pickupSpawnTime = 0;
+                    break;
                 
-                _spawnTime = 0;
-            }
-            if (bestAction.Name == "SpawnHealth" && _spawnTime > 0.5f)
-            {
-                var pickupSpawnPoint = context.PickupSpawnPoints[Random.Range(0, context.PickupSpawnPoints.Count)];
-                
-                if (!context.IsVisibleToPlayer(context.Player.Position) && pickupSpawnPoint.Zone == context.Player.CurrentZone)
+                case "SpawnHealth" :
+                    if (!(!context.IsVisibleToPlayer(context.Player.Position) && pickupSpawnPoint.Zone == context.Player.CurrentZone && _pickupSpawnTime > 2)) 
+                        return;
+                    
                     actions.SpawnPickup(PickupType.Health, pickupSpawnPoint);
+                    _pickupSpawnTime = 0;
+                    break;
                 
-                _spawnTime = 0;
-            }
-            if (bestAction.Name == "SpawnGrenade" && _spawnTime > 0.5f)
-            {
-                var pickupSpawnPoint = context.PickupSpawnPoints[Random.Range(0, context.PickupSpawnPoints.Count)];
-                
-                if (!context.IsVisibleToPlayer(context.Player.Position) && pickupSpawnPoint.Zone == context.Player.CurrentZone)
+                case "SpawnGrenade" :
+                    if (!(!context.IsVisibleToPlayer(context.Player.Position) && pickupSpawnPoint.Zone == context.Player.CurrentZone && _pickupSpawnTime > 2))
+                        return;
+                    
                     actions.SpawnPickup(PickupType.Grenade, pickupSpawnPoint);
+                    _pickupSpawnTime = 0;
+                    break;
                 
-                _spawnTime = 0;
+                case "Horde" :
+                    for (int i = 0; i < _enemyNumberInHorde.Evaluate(Context["EnemyKilled"]); i++)
+                    {
+                        if (!(!context.IsVisibleToPlayer(enemySpawnPoint.Position) && context.Player.CurrentZone == enemySpawnPoint.Zone)) 
+                            return;
+                        
+                        actions.SpawnEnemy(EnemyType.Common, enemySpawnPoint);
+                    }
+                    
+                    if (_waveTime < _waveTimer)
+                    {
+                        _waveTimer = 0;
+                        _waveTime = Random.Range(60, 240);
+                    }
+                    break;
+                
+                case "Adrenaline" :
+                    if (_adrenalineTimer < _adrenalineCooldown)
+                    {
+                        actions.GiveAdrenaline(10);
+                        _adrenalineTimer = 0;
+                    }
+                    break;
             }
-
-
-            if (bestAction.Name == "Adrenaline")
+            //marche pas 
+            if ((!_firstWeapon && context.Player.Progress >= 0.25) || (!_secondWeapon && context.Player.Progress >= 0.75))
             {
-                actions.GiveAdrenaline(5);
-                _adrenaline = true;
+                var SelectedWeaponNumber = Random.Range(1, 2);
+                var SelectedWeapon = RandomWeapon[SelectedWeaponNumber];
+                if (!(!context.IsVisibleToPlayer(context.Player.Position) && pickupSpawnPoint.Zone == context.Player.CurrentZone && _pickupSpawnTime > 2 && context.Player.ownedWeapons[SelectedWeaponNumber])) 
+                    return;
+                actions.ShowMessage("A weapon is located in this area !", 3);
+                actions.SpawnPickup(SelectedWeapon, pickupSpawnPoint);
             }
-            
-            if (_waveTimer >= _waveTime)
-            {
-                for (int i = 0; i < _waveMobsCurve.Evaluate(Context["PlayerHealth"]); i++)
-                {
-                    // if (!context.IsVisibleToPlayer(enemySpawnPoint.Position) &&
-                    //     context.Player.CurrentZone == enemySpawnPoint.Zone)
-                    //     actions.SpawnEnemy(EnemyType.Common, enemySpawnPoint);
-                }
-                _waveTimer = 0;
-                _waveTime = Random.Range(60, 240);
-            }
-
 
         }
 
@@ -216,11 +196,8 @@ namespace ZombieFPS
                 {
                     bestScore = score;
                     bestAction = utilityAction;
-
-                    //Debug.Log(bestAction.Name);
                 }
             }
-
             return bestAction;
         }
     }
