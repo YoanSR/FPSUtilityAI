@@ -24,6 +24,7 @@ namespace ZombieFPS
         [SerializeField] private float _pickupSpawnTime;
 
         [SerializeField] private AnimationCurve _enemySpeedCurve;
+        [SerializeField] private AnimationCurve _enemyDamageCurve;
 
         [SerializeField] private AnimationCurve _enemyNumberInHorde;
         
@@ -112,6 +113,13 @@ namespace ZombieFPS
 
             var bestAction = ChooseAction(context,  actions,  deltaTime);
             Debug.Log(bestAction.Name);
+
+            foreach (var Enemy in context.Enemies)
+            {
+                actions.SetEnemySpeedMultiplier(_enemySpeedCurve.Evaluate(Vector3.Distance(Enemy.Position, context.Player.Position)/10));
+                actions.SetEnemyDamageMultiplier(_enemyDamageCurve.Evaluate(Vector3.Distance(Enemy.Position, context.Player.Position)/10));
+            }
+  
 
             switch (bestAction.Name)
             {
